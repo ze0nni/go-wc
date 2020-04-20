@@ -50,29 +50,23 @@ func run(numGorutines int, files <-chan string) asciiMap {
 		}()
 	}
 
-	scanDirDone := make(chan struct{})
 	reduceDone := make(chan struct{})
 
 	var reducedMap asciiMap
 
 	// Объединение результатов сканирования других файлов
 	go func() {
-		for {
-			select {
-			case m := <-asciiMapChan:
-				for i := 0; i < asciiMapSize; i++ {
-					reducedMap[i] += m[i]
-				}
-			case <-scanDirDone:
-				reduceDone <- struct{}{}
-				return
+		for m := range asciiMapChan {
+			for i := 0; i < asciiMapSize; i++ {
+				reducedMap[i] += m[i]
 			}
 		}
+		reduceDone <- struct{}{}
 	}()
 
 	// Ждем пока просканируются все файлы
 	wg.Wait()
-	scanDirDone <- struct{}{}
+	close(asciiMapChan)
 
 	// Ждем пока результаты сканирования файлов объединяться
 	<-reduceDone
