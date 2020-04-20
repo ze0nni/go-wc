@@ -78,8 +78,11 @@ func run(numGorutines int, files <-chan string) asciiMap {
 }
 
 func task(files <-chan string, results chan<- asciiMap) {
+
+	buffer := make([]byte, fileBufferSize)
+
 	for f := range files {
-		result, err := scanFile(f)
+		result, err := scanFile(f, buffer)
 		if nil != err {
 			log.Panic(err)
 		}
@@ -88,7 +91,8 @@ func task(files <-chan string, results chan<- asciiMap) {
 }
 
 // Тут asciiMap передается через стек, что, думаю, совсем не плохо
-func scanFile(fileName string) (asciiMap, error) {
+// А еще я понял что хватит и одного буффера на горутину
+func scanFile(fileName string, buffer []byte) (asciiMap, error) {
 	var asciiMap asciiMap
 
 	file, err := os.Open(fileName)
@@ -97,8 +101,6 @@ func scanFile(fileName string) (asciiMap, error) {
 	}
 
 	defer file.Close()
-
-	buffer := make([]byte, fileBufferSize)
 
 ReadLoop:
 	for {
