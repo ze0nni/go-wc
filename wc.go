@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -15,10 +16,17 @@ const asciiMapSize = 128
 type asciiMap = [asciiMapSize]int64
 
 func main() {
-	run(
+	result := run(
 		runtime.NumCPU(),
 		scanDir("."),
 	)
+
+	for i := 0; i < asciiMapSize; i++ {
+		amount := result[i]
+		if amount > 0 {
+			fmt.Printf("%d %d\n", i, amount)
+		}
+	}
 }
 
 func run(numGorutines int, files <-chan string) asciiMap {
