@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -17,26 +18,57 @@ func main() {
 	run(4, scanDir("."))
 }
 
-func run(numGorutines int, files <-chan string) {
+func run(numGorutines int, files <-chan string) asciiMap {
 	var wg = sync.WaitGroup{}
+
+	asciiMapChan := make(chan asciiMap)
 
 	for i := 0; i < numGorutines; i++ {
 		wg.Add(1)
 
 		go func() {
-			task(files)
 			defer wg.Done()
+
+			task(files, asciiMapChan)
 		}()
 	}
+
+	scanDirDone := make(chan struct{})
+	reduceDone := make(chan struct{})
+
+	var reducedMap asciiMap
+
+	go func() {
+		for {
+			select {
+			case m := <-asciiMapChan:
+				for i := 0; i < asciiMapSize; i++ {
+					reducedMap[i] += m[i]
+				}
+			case <-scanDirDone:
+				reduceDone <- struct{}{}
+				return
+			}
+		}
+	}()
+
+	// Ждем пока просканируются все файлы
 	wg.Wait()
+	scanDirDone <- struct{}{}
+
+	// Ждем пока результаты сканирования файлов объединяться
+	<-reduceDone
+
+	return reducedMap
 }
 
-func task(files <-chan string) {
+func task(files <-chan string, results chan<- asciiMap) {
 	for f := range files {
-		_, err := scanFile(f)
+		result, err := scanFile(f)
 		if nil != err {
 			log.Panic(err)
 		}
+		results <- result
 	}
 }
 
@@ -102,24 +134,4 @@ func scanDir(root string) <-chan string {
 	}()
 
 	return out
-}
-
-func run(numGorutines int, files <-chan string) {
-	var wg = sync.WaitGroup{}
-
-	for i := 0; i < numGorutines; i++ {
-		wg.Add(1)
-
-		go func() {
-			task(files)
-			defer wg.Done()
-		}()
-	}
-	wg.Wait()
-}
-
-func task(files <-chan string) {
-	for range files {
-
-	}
 }
