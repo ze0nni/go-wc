@@ -1,21 +1,24 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"os"
+	"runtime"
 	"sync"
 
 	"github.com/karrick/godirwalk"
 )
 
-const asciiMapSize = 127
+const asciiMapSize = 128
 
 type asciiMap = [asciiMapSize]int64
 
 func main() {
-	run(4, scanDir("."))
+	run(
+		runtime.NumCPU(),
+		scanDir("."),
+	)
 }
 
 func run(numGorutines int, files <-chan string) asciiMap {
@@ -23,6 +26,7 @@ func run(numGorutines int, files <-chan string) asciiMap {
 
 	asciiMapChan := make(chan asciiMap)
 
+	// Сканирование файлов в несколько потоков
 	for i := 0; i < numGorutines; i++ {
 		wg.Add(1)
 
@@ -38,6 +42,7 @@ func run(numGorutines int, files <-chan string) asciiMap {
 
 	var reducedMap asciiMap
 
+	// Объединение результатов сканирования других файлов
 	go func() {
 		for {
 			select {
@@ -97,7 +102,7 @@ ReadLoop:
 
 		for i := 0; i < readed; i++ {
 			b := buffer[i]
-			if b < 127 {
+			if b < asciiMapSize {
 				asciiMap[b]++
 			}
 		}
