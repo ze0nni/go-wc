@@ -16,9 +16,14 @@ const asciiMapSize = 128
 type asciiMap = [asciiMapSize]int64
 
 func main() {
+	var root = "."
+	if len(os.Args) >= 2 {
+		root = os.Args[1]
+	}
+
 	result := run(
 		runtime.NumCPU(),
-		scanDir("."),
+		scanDir(root),
 	)
 
 	for i := 0; i < asciiMapSize; i++ {
