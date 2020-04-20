@@ -11,6 +11,9 @@ import (
 	"github.com/karrick/godirwalk"
 )
 
+// Не уверен что это самый эффективный размер буффера, нужно экспериментировать
+const fileBufferSize = 1024 * 60
+
 const asciiMapSize = 128
 
 type asciiMap = [asciiMapSize]int64
@@ -95,7 +98,7 @@ func scanFile(fileName string) (asciiMap, error) {
 
 	defer file.Close()
 
-	buffer := make([]byte, 1024*60)
+	buffer := make([]byte, fileBufferSize)
 
 ReadLoop:
 	for {
@@ -118,6 +121,8 @@ ReadLoop:
 	return asciiMap, nil
 }
 
+// Сейчас чтение списка имен файлов и чтение самих файлов идет нос в нос
+// можно заморочиться с этой функцией и просканировать список файлов быстрее
 func scanDir(root string) <-chan string {
 	out := make(chan string)
 
